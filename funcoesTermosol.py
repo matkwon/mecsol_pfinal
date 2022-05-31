@@ -142,16 +142,18 @@ def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
 
 
 def main():
-    # nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
+    nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
     
-    # for i in range(nn):
-    #     n1 = Node(N[0, i], N[1, i])
-    #     if i == nn - 1:
-    #         n2 = Node(N[0, 0], N[1, 0])
-    #     else:
-    #         n2 = Node(N[0, i+1], N[1, i+1])
+    for i in range(nm):
+        n1 = Node(Inc[i, 0], Inc[i, 1])
+        if i == nn - 1:
+            n2 = Node(Inc[0, 0], Inc[0, 1])
+        else:
+            n2 = Node(Inc[i + 1, 0], Inc[i + 1, 1])
+        
     const = 1e8
     a = [[1.59, -0.4, -0.54],[-0.4, 1.7, 0.4],[-0.54, 0.4, 0.54]]
+    a = [[y * const for y in x] for x in a]
     b = [0, 150, -100]
 
     u, it = Solver.jacobi(a, b)

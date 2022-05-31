@@ -9,6 +9,7 @@ class Element:
         self.l = ((n2.x - n1.x)**2 + (n2.y - n1.y)**2) ** (1/2)
         self.s = (n2.y - n1.y) / self.l
         self.c = (n2.x - n1.x) / self.l
+    
     def Ke(self):
         matrix  =  [[self.c**2, self.c*self.s, -self.c**2, -self.c*self.s],
                     [self.c*self.s, self.s**2, -self.c*self.s, -self.s**2],
