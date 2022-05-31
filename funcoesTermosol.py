@@ -29,7 +29,7 @@ geraSaida(nome,Ft,Ut,Epsi,Fi,Ti)
 -------------------------------------------------------------------------------
 
 """
-
+from Domain import Node, Element, Solver
 from math import *
 
 def plota(N,Inc):
@@ -140,48 +140,23 @@ def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
     f.write(str(Ti))
     f.close()
 
-class Node:
-
-    def __init__(self, x, y, u, v):
-        self.x = x
-        self.y = y
-        self.u = u
-        self.v = v
-
-class Element:
-
-    def __init__(self, n1, n2, E, A, index):
-        self.n1 = n1
-        self.n2 = n2
-        self.E = E
-        self.A = A
-        self.index = index
-        self.l = sqrt((n2.x - n1.x)**2 + (n2.y - n1.y)**2)
-        self.s = (n2.y - n1.y) / self.l
-        self.c = (n2.x - n1.x) / self.l
-    def Ke(self):
-        matrix  =  [[self.c**2, self.c*self.s, -self.c**2, -self.c*self.s],
-                    [self.c*self.s, self.s**2, -self.c*self.s, -self.s**2],
-                    [-self.c**2, -self.c*self.s, self.c**2, self.c*self.s],
-                    [-self.c*self.s, -self.s**2, self.c*self.s, self.s**2]]
-        
-        return (self.E * self.A / self.l) * matrix
-    
-    def deform(self):
-        return (- self.c*self.n1.u - self.s*self.n1.v + self.c*self.n2.u + self.s*self.n2.v) / self.l
-    
-    def tension(self):
-        return self.deform(self) * self.E
-
 
 def main():
-    nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
+    # nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
     
-    for i in range(nn):
-        n1 = Node(N[0, i], N[1, i])
-        if i == nn - 1:
-            n2 = Node(N[0, 0], N[1, 0])
-        else:
-            n2 = Node(N[0, i+1], N[1, i+1])
+    # for i in range(nn):
+    #     n1 = Node(N[0, i], N[1, i])
+    #     if i == nn - 1:
+    #         n2 = Node(N[0, 0], N[1, 0])
+    #     else:
+    #         n2 = Node(N[0, i+1], N[1, i+1])
+    const = 1e8
+    a = [[1.59, -0.4, -0.54],[-0.4, 1.7, 0.4],[-0.54, 0.4, 0.54]]
+    b = [0, 150, -100]
+
+    u, it = Solver.jacobi(a, b)
+    print(u)
+
+main()
     
 
