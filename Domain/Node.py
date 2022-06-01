@@ -1,7 +1,7 @@
 class Node:
 
-    def __init__(self, x, y, u, v):
+    def __init__(self, n, x, y):
+        self.n = n
         self.x = x
         self.y = y
-        self.u = u
-        self.v = v
+        self.gdl = [n*2 - 1, n*2]

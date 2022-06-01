@@ -31,6 +31,7 @@ geraSaida(nome,Ft,Ut,Epsi,Fi,Ti)
 """
 from Domain import Node, Element, Solver
 from math import *
+import numpy as np
 
 def plota(N,Inc):
     # Numero de membros
@@ -59,7 +60,6 @@ def plota(N,Inc):
     
 def read_file(path):
     
-    import numpy as np
     import xlrd
     
     arquivo = xlrd.open_workbook(path)
@@ -70,12 +70,11 @@ def read_file(path):
     # Numero de nos
     nn = int(nos.cell(1,3).value)
                  
-    # Matriz dos nós
-    N = np.zeros((2,nn))
+    # Vetor dos nós
+    N = np.zeros((nn))
     
     for c in range(nn):
-        N[0,c] = nos.cell(c+1,0).value
-        N[1,c] = nos.cell(c+1,1).value
+        N[c] = Node(c+1, nos.cell(c+1,0).value, nos.cell(c+1,1).value)
     
     ################################################## Ler a incidencia
     incid = arquivo.sheet_by_name('Incidencia')
@@ -91,6 +90,13 @@ def read_file(path):
         Inc[c,1] = int(incid.cell(c+1,1).value)
         Inc[c,2] = incid.cell(c+1,2).value
         Inc[c,3] = incid.cell(c+1,3).value
+    
+    # Vetor de elementos
+
+    E = np.zeros((nm))
+
+    for c in range(nm):
+        E[c] = Element(N[Inc[c,0] + 1], N[Inc[c,1] + 1], Inc[c,2], Inc[c,3])
     
     ################################################## Ler as cargas
     carg = arquivo.sheet_by_name('Carregamento')
@@ -123,7 +129,7 @@ def read_file(path):
         R[c,0] = GDL-1
 
 
-    return nn,N,nm,Inc,nc,F,nr,R
+    return nn,N,nm,Inc,E,nc,F,nr,R
 
 def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
     nome = nome + '.txt'
@@ -142,14 +148,28 @@ def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
 
 
 def main():
-    nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
-    
-    for i in range(nm):
-        n1 = Node(Inc[i, 0], Inc[i, 1])
-        if i == nn - 1:
-            n2 = Node(Inc[0, 0], Inc[0, 1])
-        else:
-            n2 = Node(Inc[i + 1, 0], Inc[i + 1, 1])
+    nn, N, nm, Inc, E, nc, F, nr, R = read_file("entrada.xlsx")
+
+    Kg = np.zeros((2*nn, 2*nn))
+
+    for e in E:
+        Ke = e.Ke()
+
+        for l in range(4):
+            if l <= 1:
+                gdl1 = e.n1[l]
+            else:
+                gdl1 = e.n2[l-2]
+            
+            for c in range(4):
+                if c <= 1:
+                    gdl2 = e.n1[l]
+                else:
+                    gdl2 = e.n2[l-2]
+                
+                Kg[gdl1, gdl2] += Ke[l, c]
+
+
         
     const = 1e8
     a = [[1.59, -0.4, -0.54],[-0.4, 1.7, 0.4],[-0.54, 0.4, 0.54]]
