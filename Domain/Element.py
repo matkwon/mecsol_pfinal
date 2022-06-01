@@ -14,8 +14,12 @@ class Element:
                     [self.c*self.s, self.s**2, -self.c*self.s, -self.s**2],
                     [-self.c**2, -self.c*self.s, self.c**2, self.c*self.s],
                     [-self.c*self.s, -self.s**2, self.c*self.s, self.s**2]]
+        
+        for l in range(4):
+            for c in range(4):
+                matrix[l][c] *= (self.E * self.A / self.l)
 
-        return (self.E * self.A / self.l) * matrix
+        return matrix
     
     def deform(self):
         return (- self.c*self.n1.u - self.s*self.n1.v + self.c*self.n2.u + self.s*self.n2.v) / self.l

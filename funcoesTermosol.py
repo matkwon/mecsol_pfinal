@@ -71,10 +71,10 @@ def read_file(path):
     nn = int(nos.cell(1,3).value)
                  
     # Vetor dos nós
-    N = np.zeros((nn))
+    N = [None] * nn
     
     for c in range(nn):
-        N[c] = Node(c+1, nos.cell(c+1,0).value, nos.cell(c+1,1).value)
+        N[c] = Node.Node(c+1, nos.cell(c+1,0).value, nos.cell(c+1,1).value)
     
     ################################################## Ler a incidencia
     incid = arquivo.sheet_by_name('Incidencia')
@@ -90,13 +90,6 @@ def read_file(path):
         Inc[c,1] = int(incid.cell(c+1,1).value)
         Inc[c,2] = incid.cell(c+1,2).value
         Inc[c,3] = incid.cell(c+1,3).value
-    
-    # Vetor de elementos
-
-    E = np.zeros((nm))
-
-    for c in range(nm):
-        E[c] = Element(N[Inc[c,0] + 1], N[Inc[c,1] + 1], Inc[c,2], Inc[c,3])
     
     ################################################## Ler as cargas
     carg = arquivo.sheet_by_name('Carregamento')
@@ -129,7 +122,7 @@ def read_file(path):
         R[c,0] = GDL-1
 
 
-    return nn,N,nm,Inc,E,nc,F,nr,R
+    return nn,N,nm,Inc,nc,F,nr,R
 
 def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
     nome = nome + '.txt'
@@ -148,35 +141,58 @@ def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
 
 
 def main():
-    nn, N, nm, Inc, E, nc, F, nr, R = read_file("entrada.xlsx")
+    nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
 
-    Kg = np.zeros((2*nn, 2*nn))
+    # Vetor de elementos
+    E = [None] * nm
+    for c in range(nm):
+        E[c] = Element.Element(N[int(Inc[c,0] - 1)], N[int(Inc[c,1] - 1)], Inc[c,2], Inc[c,3])
+
+    # Matriz de rigidez global
+    Kg = np.zeros((nn*2, nn*2))
 
     for e in E:
         Ke = e.Ke()
 
         for l in range(4):
             if l <= 1:
-                gdl1 = e.n1[l]
+                gdl1 = e.n1.gdl[l]
             else:
-                gdl1 = e.n2[l-2]
+                gdl1 = e.n2.gdl[l-2]
             
             for c in range(4):
                 if c <= 1:
-                    gdl2 = e.n1[l]
+                    gdl2 = e.n1.gdl[c]
                 else:
-                    gdl2 = e.n2[l-2]
+                    gdl2 = e.n2.gdl[c-2]
                 
-                Kg[gdl1, gdl2] += Ke[l, c]
+                Kg[gdl1-1, gdl2-1] += Ke[l][c]
 
-
+    # Aplicando condições de contorno
+    for a in range(len(R)):
+        r = int(R[len(R) - a - 1][0])
+        nrows, ncols = Kg.shape
+        for l in range(nrows):
+            if nrows - l - 1 == r:
+                F = np.delete(F, r)
+                Kg = np.delete(Kg, r, 0)
+                break
+        for c in range(ncols):
+            if ncols - c - 1 == r:
+                Kg = np.delete(Kg, r, 1)
+                Kg.reshape(nrows-1, ncols-1)
+                break
         
-    const = 1e8
-    a = [[1.59, -0.4, -0.54],[-0.4, 1.7, 0.4],[-0.54, 0.4, 0.54]]
-    a = [[y * const for y in x] for x in a]
-    b = [0, 150, -100]
+    # const = 1e8
+    # a = [[1.59, -0.4, -0.54],[-0.4, 1.7, 0.4],[-0.54, 0.4, 0.54]]
+    # a = [[y * const for y in x] for x in a]
+    # b = [0, 150, -100]
 
-    u, it = Solver.jacobi(a, b)
+    # u, it = Solver.jacobi(a, b)
+    # print(u)
+
+    u, it = Solver.jacobi(Kg, F)
+    u, it = Solver.gauss_seidel(Kg, F)
     print(u)
 
 main()
