@@ -6,7 +6,7 @@ def gauss_seidel(a,b):
     n = len(b)
 
     # initialize x
-    x = np.zeros(n)
+    x = np.zeros((n,1))
 
     # counter for number of iterations
     iterations = 0
@@ -38,7 +38,7 @@ def jacobi(a,b):
     n = len(b)
 
     # initialize x
-    x = np.zeros(n)
+    x = np.zeros((n, 1))
 
     # counter for number of iterations
     iterations = 0

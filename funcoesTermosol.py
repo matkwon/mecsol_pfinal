@@ -40,7 +40,6 @@ def plota(N,Inc):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
-#    plt.show()
     fig = plt.figure()
     # Passa por todos os membros
     for i in range(nm):
@@ -70,11 +69,12 @@ def read_file(path):
     # Numero de nos
     nn = int(nos.cell(1,3).value)
                  
-    # Vetor dos nós
-    N = [None] * nn
+    # Matriz dos nós
+    N = np.zeros((2,nn))
     
     for c in range(nn):
-        N[c] = Node.Node(c+1, nos.cell(c+1,0).value, nos.cell(c+1,1).value)
+        N[0,c] = nos.cell(c+1,0).value
+        N[1,c] = nos.cell(c+1,1).value
     
     ################################################## Ler a incidencia
     incid = arquivo.sheet_by_name('Incidencia')
@@ -126,7 +126,7 @@ def read_file(path):
 
 def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
     nome = nome + '.txt'
-    f = open("saida.txt","w+")
+    f = open(nome, "w+")
     f.write('Reacoes de apoio [N]\n')
     f.write(str(Ft))
     f.write('\n\nDeslocamentos [m]\n')
@@ -139,21 +139,25 @@ def geraSaida(nome,Ft,Ut,Epsi,Fi,Ti):
     f.write(str(Ti))
     f.close()
 
+def nodes(nn, N):
+    # Vetor dos nós
+    nodes = [None] * nn
+    for c in range(nn):
+        nodes[c] = Node.Node(c+1, N[0,c], N[1,c])
+    return nodes
 
-def main():
-    nn, N, nm, Inc, nc, F, nr, R = read_file("entrada.xlsx")
-
+def elements(nm, Inc, nodes):
     # Vetor de elementos
     E = [None] * nm
     for c in range(nm):
-        E[c] = Element.Element(N[int(Inc[c,0] - 1)], N[int(Inc[c,1] - 1)], Inc[c,2], Inc[c,3])
+        E[c] = Element.Element(nodes[int(Inc[c,0] - 1)], nodes[int(Inc[c,1] - 1)], Inc[c,2], Inc[c,3])
+    return E
 
+def Kglobal(nn, E):
     # Matriz de rigidez global
     Kg = np.zeros((nn*2, nn*2))
-
     for e in E:
         Ke = e.Ke()
-
         for l in range(4):
             if l <= 1:
                 gdl1 = e.n1.gdl[l]
@@ -167,34 +171,90 @@ def main():
                     gdl2 = e.n2.gdl[c-2]
                 
                 Kg[gdl1-1, gdl2-1] += Ke[l][c]
+    return Kg
 
+def displacements(nr, R, E, Kg, F):
     # Aplicando condições de contorno
-    for a in range(len(R)):
-        r = int(R[len(R) - a - 1][0])
-        nrows, ncols = Kg.shape
+    Kg_ = Kg
+    for a in range(nr):
+        r = int(R[nr - a - 1][0])
+        nrows, ncols = Kg_.shape
         for l in range(nrows):
             if nrows - l - 1 == r:
                 F = np.delete(F, r)
-                Kg = np.delete(Kg, r, 0)
+                Kg_ = np.delete(Kg_, r, 0)
                 break
         for c in range(ncols):
             if ncols - c - 1 == r:
-                Kg = np.delete(Kg, r, 1)
-                Kg.reshape(nrows-1, ncols-1)
+                Kg_ = np.delete(Kg_, r, 1)
+                Kg_.reshape(nrows-1, ncols-1)
                 break
-        
-    # const = 1e8
-    # a = [[1.59, -0.4, -0.54],[-0.4, 1.7, 0.4],[-0.54, 0.4, 0.54]]
-    # a = [[y * const for y in x] for x in a]
-    # b = [0, 150, -100]
+    
+    # u, it = Solver.jacobi(Kg_, F)
+    u, it = Solver.gauss_seidel(Kg_, F)
 
-    # u, it = Solver.jacobi(a, b)
-    # print(u)
+    for a in range(nr):
+        r = int(R[a][0])
+        u = np.insert(u, r, 0, 0)
 
-    u, it = Solver.jacobi(Kg, F)
-    u, it = Solver.gauss_seidel(Kg, F)
-    print(u)
+    for e in E:
+        e.n1.set_u(u[(e.n1.n - 1)*2])
+        e.n2.set_u(u[(e.n2.n - 1)*2])
+        e.n1.set_v(u[(e.n1.n)*2 - 1])
+        e.n2.set_v(u[(e.n2.n)*2 - 1])
+    
+    return u
+
+def lean_reactions(nr, R, nn, u, Kg):
+    lean_R = R
+    for i in range(nr):
+        a = int(R[i][0])
+        for x in range(nn*2):
+            lean_R[i] += u[x]*Kg[a][x]
+    return lean_R
+
+def deform(E):
+    E_d = np.zeros((len(E),1))
+    for i in range(len(E)):
+        E_d[i] = E[i].deform()
+    return E_d
+    
+def internal_f(E):
+    E_if = np.zeros((len(E),1))
+    for i in range(len(E)):
+        E_if[i] = E[i].internal_f()
+    return E_if
+    
+def tension(E):
+    E_t = np.zeros((len(E),1))
+    for i in range(len(E)):
+        E_t[i] = E[i].tension()
+    return E_t
+
+def new_nodes(N, u):
+    newN = N
+    Nrows, Ncols = N.shape
+    for c in range(Ncols):
+        for r in range(Nrows):
+            newN[r][c] += u[c*Nrows + r]
+    return newN
+
+def main():
+    filename = "entrada"
+    nn, N, nm, Inc, nc, F, nr, R = read_file(filename + ".xlsx")
+
+    nos = nodes(nn, N)
+    E = elements(nm, Inc, nos)
+    Kg = Kglobal(nn, E)
+
+    u = displacements(nr, R, E, Kg, F)
+    Ft = lean_reactions(nr, R, nn, u, Kg)
+    Epsi = deform(E)
+    Fi = internal_f(E)
+    Ti = tension(E)
+    geraSaida(filename, Ft, u, Epsi, Fi, Ti)
+
+    plota(N, Inc)
+    plota(new_nodes(N, u), Inc)
 
 main()
-    
-

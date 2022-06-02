@@ -25,4 +25,7 @@ class Element:
         return (- self.c*self.n1.u - self.s*self.n1.v + self.c*self.n2.u + self.s*self.n2.v) / self.l
     
     def tension(self):
-        return self.deform(self) * self.E
+        return self.deform() * self.E
+    
+    def internal_f(self):
+        return self.tension() * self.A
