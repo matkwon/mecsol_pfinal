@@ -33,7 +33,7 @@ from Domain import Node, Element, Solver
 from math import *
 import numpy as np
 
-def plota(N,Inc):
+def plota(N,Inc,filename):
     # Numero de membros
     nm = len(Inc[:,0])
     
@@ -55,8 +55,9 @@ def plota(N,Inc):
     plt.ylabel('y [m]')
     plt.grid(True)
     plt.axis('equal')
+    plt.savefig(filename + '.eps', format='eps')
     plt.show()
-    
+
 def read_file(path):
     
     import xlrd
@@ -254,7 +255,7 @@ def main():
     Ti = tension(E)
     geraSaida(filename, Ft, u, Epsi, Fi, Ti)
 
-    plota(N, Inc)
-    plota(new_nodes(N, u), Inc)
+    plota(N, Inc, "antes")
+    plota(new_nodes(N, u), Inc, "depois")
 
 main()
